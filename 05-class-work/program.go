@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -116,6 +117,51 @@ func (products Products) Filter(predicate func(Product) bool) Products {
 	}
 	return result
 }
+
+// Sort
+// sort.Interface implementation (default by Id)
+func (products Products) Len() int {
+	return len(products)
+}
+func (products Products) Swap(i, j int) {
+	products[i], products[j] = products[j], products[i]
+}
+
+func (products Products) Less(i, j int) bool {
+	return products[i].Id < products[j].Id
+}
+
+// sort by Name
+type ByName struct {
+	Products
+}
+
+func (byName ByName) Less(i, j int) bool {
+	return byName.Products[i].Name < byName.Products[j].Name
+}
+
+func (products Products) Sort(attrName string) {
+	switch attrName {
+	case "Id":
+		sort.Sort(products)
+	case "Name":
+		sort.Sort(ByName{products})
+	}
+}
+
+func (products Products) SortSlice(attrName string) {
+	switch attrName {
+	case "Id":
+		sort.Slice(products, func(i, j int) bool {
+			return products[i].Id < products[j].Id
+		})
+	case "Name":
+		sort.Slice(products, func(i, j int) bool {
+			return products[i].Name < products[j].Name
+		})
+	}
+}
+
 func main() {
 	products := Products{
 		Product{105, "Pen", 5, 50, "Stationary"},
@@ -157,4 +203,15 @@ func main() {
 	}
 	stationaryProducts := products.Filter(stationaryProductPredicate)
 	fmt.Println(stationaryProducts)
+
+	fmt.Println("Default Sort")
+	// sort.Sort(products)
+	// products.Sort("Id")
+	products.SortSlice("Id")
+	fmt.Println(products)
+
+	fmt.Println("Sort by name")
+	// sort.Sort(ByName{products})
+	products.SortSlice("Name")
+	fmt.Println(products)
 }
