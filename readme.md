@@ -44,4 +44,17 @@
 - Analyze binaries for package inclusion/exclusion in build
 
 ## Concurrency
-- 
+### Channel (data type for enabling communication between goroutines)
+- Declaration
+- > var [var_name] chan [data_type]
+- > ex: var ch chan int
+- Initialization
+- > [var_name] = make(chan [data_type])
+- > ex: ch = make(chan int)
+- Operations (using channel operation [ <- ])
+    - Send Operation
+        - > [chan_var] <- [data]
+        - > ex: ch <- 100
+    - Receive Operation
+        - > <- [chan_var]
+        - > ex: data := <- ch
