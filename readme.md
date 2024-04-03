@@ -58,3 +58,4 @@
     - Receive Operation
         - > <- [chan_var]
         - > ex: data := <- ch
+![image](./images/channel-behavior.png)
