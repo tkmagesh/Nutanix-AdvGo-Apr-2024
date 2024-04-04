@@ -6,7 +6,16 @@ import (
 )
 
 func main() {
-	fibCh := genFib()
+	stopCh := make(chan struct{})
+	fibCh := genFib(stopCh)
+
+	fmt.Println("Hit ENTER to stop...")
+	go func() {
+		fmt.Scanln()
+		// stopCh <- struct{}{}
+		close(stopCh)
+	}()
+
 	for no := range fibCh {
 		fmt.Println(no)
 	}
@@ -15,26 +24,14 @@ func main() {
 
 // using "share memory by communicating" (advisable)
 
-func elapse(d time.Duration) <-chan time.Time {
-	timeOut := make(chan time.Time)
-	go func() {
-		time.Sleep(d)
-		timeOut <- time.Now()
-	}()
-	return timeOut
-}
-
-func genFib() <-chan int {
+func genFib(stopCh <-chan struct{}) <-chan int {
 	ch := make(chan int)
 	go func() {
-		// timeOut := elapse(5 * time.Second)
-		timeOut := time.After(5 * time.Second)
-
 	LOOP:
 		for x, y := 0, 1; ; x, y = y, x+y {
 			select {
-			case <-timeOut:
-				fmt.Println("timeout... closing the channel")
+			case <-stopCh:
+				fmt.Println("stop signal received... closing the channel")
 				close(ch)
 				break LOOP
 			case ch <- x:
