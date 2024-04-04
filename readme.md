@@ -63,3 +63,22 @@
         - > ex: data := <- ch
 ### Channel Behavior
 ![image](./images/channel-behavior.png)
+
+## Context
+- Primarily for cancel propagation
+- Can create a hierarchy of contexts
+- Cancellation strategy
+    - Can be programmatic
+    - Can be time based
+- Can also use context to share data across hierarchy of goroutines
+- APIs
+    - context.Background() 
+        - used to create the root context
+    - context.WithValue() 
+        - used to create context for sharing data (no cancellation)
+    - context.WithCancel()
+        - programmatic cancellation
+    - context.WithTimeout()
+        - timer based cancellation (relative time)
+    - context.WithDeadline()
+        - timer based cancellation (absolute time)
