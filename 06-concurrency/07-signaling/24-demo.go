@@ -21,10 +21,9 @@ func genData() <-chan string {
 	dataCh := make(chan string)
 
 	fibStopCh := make(chan struct{})
-	fmt.Println("Hit ENTER to stop fib generation...")
+	fmt.Println("Hit ENTER to stop generating fib series....")
 	go func() {
 		fmt.Scanln()
-		// fibStopCh <- struct{}{}
 		close(fibStopCh)
 	}()
 
@@ -34,41 +33,42 @@ func genData() <-chan string {
 		close(primeStopCh)
 	}()
 
-	stopCh := make(chan struct{})
 	go func() {
+		fibCh := genFib(fibStopCh)
+		primeCh := genPrime(primeStopCh)
+
 		wg.Add(1)
-		fibCh := genFib(wg, fibStopCh)
+		go printFib(wg, fibCh, dataCh)
+
 		wg.Add(1)
-		primeCh := genPrime(wg, primeStopCh)
-		go func() {
-		LOOP:
-			for {
-				select {
-				case fibNo, isOpen := <-fibCh:
-					if isOpen {
-						dataCh <- fmt.Sprintf("fib : %d", fibNo)
-					}
-				case primeNo, isOpen := <-primeCh:
-					if isOpen {
-						dataCh <- fmt.Sprintf("prime : %d", primeNo)
-					}
-				case <-stopCh:
-					break LOOP
-				}
-			}
-		}()
+		go printPrime(wg, primeCh, dataCh)
+
 		wg.Wait()
-		close(stopCh)
 		close(dataCh)
 	}()
+
 	return dataCh
+
+}
+
+func printFib(wg *sync.WaitGroup, fibCh <-chan int, dataCh chan<- string) {
+	defer wg.Done()
+	for fibNo := range fibCh {
+		dataCh <- fmt.Sprintf("fib : %d", fibNo)
+	}
+}
+
+func printPrime(wg *sync.WaitGroup, PrimeCh <-chan int, dataCh chan<- string) {
+	defer wg.Done()
+	for primeNo := range PrimeCh {
+		dataCh <- fmt.Sprintf("prime : %d", primeNo)
+	}
 }
 
 // using "share memory by communicating" (advisable)
-func genPrime(wg *sync.WaitGroup, stopCh <-chan struct{}) <-chan int {
+func genPrime(stopCh <-chan struct{}) <-chan int {
 	primeCh := make(chan int)
 	go func() {
-		defer wg.Done()
 	LOOP:
 		for no := 2; ; no++ {
 			select {
@@ -98,10 +98,9 @@ func isPrime(no int) bool {
 	return true
 }
 
-func genFib(wg *sync.WaitGroup, stopCh <-chan struct{}) <-chan int {
+func genFib(stopCh <-chan struct{}) <-chan int {
 	fibCh := make(chan int)
 	go func() {
-		defer wg.Done()
 	LOOP:
 		for x, y := 0, 1; ; x, y = y, x+y {
 			select {
