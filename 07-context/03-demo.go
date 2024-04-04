@@ -1,14 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
 )
 
 func main() {
-
-	dataCh := genData()
+	rootCtx := context.Background()
+	dataCh := genData(rootCtx)
 	for data := range dataCh {
 		time.Sleep(300 * time.Millisecond)
 		fmt.Println(data)
@@ -16,27 +17,24 @@ func main() {
 	fmt.Println("Done")
 }
 
-func genData() <-chan string {
+func genData(ctx context.Context) <-chan string {
 	wg := &sync.WaitGroup{}
 	dataCh := make(chan string)
 
-	fibStopCh := make(chan struct{})
-	fmt.Println("Hit ENTER to stop generating fib series....")
 	go func() {
-		fmt.Scanln()
-		close(fibStopCh)
-	}()
+		cancelCtx, cancel := context.WithCancel(ctx)
+		fmt.Println("Hit ENTER to stop generating fib series....")
 
-	primeStopCh := make(chan struct{})
-	go func() {
-		// time.Sleep(5 * time.Second)
-		<-time.After(5 * time.Second)
-		close(primeStopCh)
-	}()
+		go func(cancel context.CancelFunc) {
+			fmt.Scanln()
+			cancel()
+		}(cancel)
 
-	go func() {
-		fibCh := genFib(fibStopCh)
-		primeCh := genPrime(primeStopCh)
+		timeoutCtx, cancel := context.WithTimeout(cancelCtx, 5*time.Second)
+		defer cancel()
+
+		fibCh := genFib(cancelCtx)
+		primeCh := genPrime(timeoutCtx)
 
 		wg.Add(1)
 		go printFib(wg, fibCh, dataCh)
@@ -67,13 +65,13 @@ func printPrime(wg *sync.WaitGroup, PrimeCh <-chan int, dataCh chan<- string) {
 }
 
 // using "share memory by communicating" (advisable)
-func genPrime(stopCh <-chan struct{}) <-chan int {
+func genPrime(ctx context.Context) <-chan int {
 	primeCh := make(chan int)
 	go func() {
 	LOOP:
 		for no := 2; ; no++ {
 			select {
-			case <-stopCh:
+			case <-ctx.Done():
 				fmt.Println("stop signal received... closing the prime channel")
 				close(primeCh)
 				break LOOP
@@ -99,13 +97,13 @@ func isPrime(no int) bool {
 	return true
 }
 
-func genFib(stopCh <-chan struct{}) <-chan int {
+func genFib(ctx context.Context) <-chan int {
 	fibCh := make(chan int)
 	go func() {
 	LOOP:
 		for x, y := 0, 1; ; x, y = y, x+y {
 			select {
-			case <-stopCh:
+			case <-ctx.Done():
 				fmt.Println("stop signal received... closing the fib channel")
 				close(fibCh)
 				break LOOP
