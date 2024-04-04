@@ -35,6 +35,9 @@
     > go mod why [module_name]
 - To install a 3rd party module as an executable (CLI tools) (installed in the $GOPATH/bin folder)
     > go install [module_name]
+- To localize the dependencies
+    > go mod vendor
+
 - Reference:
     - https://go.dev/ref/mod
 ### Package
@@ -58,4 +61,5 @@
     - Receive Operation
         - > <- [chan_var]
         - > ex: data := <- ch
+### Channel Behavior
 ![image](./images/channel-behavior.png)
