@@ -10,6 +10,7 @@ type Product struct {
 	Name     string
 	Cost     float32
 	Category string
+	Units    int
 }
 
 func (p Product) GetId() int {
@@ -62,13 +63,17 @@ func GetById[T IdType](items []T, id int) (p T, err error) {
 }
 */
 
+type Numbers interface {
+	int | int8 | int16 | int32 | int64 | uint | uint8 | uint16 | uint32 | uint64 | float32 | float64 | complex64 | complex128
+}
+
 type IdType interface {
 	GetId() int
 }
 
-type CollectionWithId[T IdType] []T
+type CollectionWithId[T IdType, K Numbers] []T
 
-func (items CollectionWithId[T]) GetById(id int) (p T, err error) {
+func (items CollectionWithId[T, K]) GetById(id int) (p T, err error) {
 	for _, item := range items {
 		if id == item.GetId() {
 			p = item
@@ -79,8 +84,8 @@ func (items CollectionWithId[T]) GetById(id int) (p T, err error) {
 	return
 }
 
-func (items CollectionWithId[T]) filter(predicate func(T) bool) CollectionWithId[T] {
-	var result CollectionWithId[T]
+func (items CollectionWithId[T, K]) filter(predicate func(T) bool) CollectionWithId[T, K] {
+	var result CollectionWithId[T, K]
 	for _, item := range items {
 		if predicate(item) {
 			result = append(result, item)
@@ -89,16 +94,24 @@ func (items CollectionWithId[T]) filter(predicate func(T) bool) CollectionWithId
 	return result
 }
 
-var products = CollectionWithId[Product]{
-	Product{100, "Pen", 10, "Stationary"},
-	Product{101, "Pencil", 5, "Stationary"},
-	Product{102, "Marker", 50, "Utencil"},
+func (items CollectionWithId[T, K]) sum(valueSelector func(T) K) K {
+	var result K
+	for _, item := range items {
+		result += valueSelector(item)
+	}
+	return result
+}
+
+var products = CollectionWithId[Product, int]{
+	Product{100, "Pen", 10, "Stationary", 10},
+	Product{101, "Pencil", 5, "Stationary", 5},
+	Product{102, "Marker", 50, "Utencil", 20},
 }
 
 var numbers = []int{10, 20, 30}
 
 func main() {
-	Print(products)
+	// Print(products)
 	Print(numbers)
 	// p, err := GetById(products, 101)
 	p, err := products.GetById(101)
@@ -112,4 +125,10 @@ func main() {
 		return p.Category == "Stationary"
 	})
 	fmt.Println(stationaryProducts)
+
+	totalUnits := products.sum(func(p Product) int {
+		return p.Units
+	})
+	fmt.Println(totalUnits)
+
 }
