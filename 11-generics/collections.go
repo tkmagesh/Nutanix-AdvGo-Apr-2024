@@ -92,7 +92,7 @@ func (items CollectionWithId[T]) filter(predicate func(T) bool) CollectionWithId
 var products = CollectionWithId[Product]{
 	Product{100, "Pen", 10, "Stationary"},
 	Product{101, "Pencil", 5, "Stationary"},
-	Product{102, "Marker", 50, "Stationary"},
+	Product{102, "Marker", 50, "Utencil"},
 }
 
 var numbers = []int{10, 20, 30}
@@ -108,8 +108,8 @@ func main() {
 		fmt.Println(p)
 	}
 
-	p101 := products.filter(func(p Product) bool {
-		return p.Id == 101
+	stationaryProducts := products.filter(func(p Product) bool {
+		return p.Category == "Stationary"
 	})
-	fmt.Println(p101)
+	fmt.Println(stationaryProducts)
 }
