@@ -66,9 +66,9 @@ type IdType interface {
 	GetId() int
 }
 
-type CollectionWithId []IdType
+type CollectionWithId[T IdType] []T
 
-func (items CollectionWithId) GetById(id int) (p IdType, err error) {
+func (items CollectionWithId[T]) GetById(id int) (p T, err error) {
 	for _, item := range items {
 		if id == item.GetId() {
 			p = item
@@ -79,7 +79,17 @@ func (items CollectionWithId) GetById(id int) (p IdType, err error) {
 	return
 }
 
-var products = CollectionWithId{
+func (items CollectionWithId[T]) filter(predicate func(T) bool) CollectionWithId[T] {
+	var result CollectionWithId[T]
+	for _, item := range items {
+		if predicate(item) {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+var products = CollectionWithId[Product]{
 	Product{100, "Pen", 10, "Stationary"},
 	Product{101, "Pencil", 5, "Stationary"},
 	Product{102, "Marker", 50, "Stationary"},
@@ -97,4 +107,9 @@ func main() {
 	} else {
 		fmt.Println(p)
 	}
+
+	p101 := products.filter(func(p Product) bool {
+		return p.Id == 101
+	})
+	fmt.Println(p101)
 }
