@@ -21,17 +21,28 @@ var products []Product = []Product{
 }
 
 // library
+
+type Middleware func(http.HandlerFunc) http.HandlerFunc
+
 type AppServer struct {
-	routes map[string]func(http.ResponseWriter, *http.Request)
+	routes      map[string]http.HandlerFunc
+	middlewares []Middleware
 }
 
-func (appServer *AppServer) Register(pattern string, handler func(http.ResponseWriter, *http.Request)) {
+func (appServer *AppServer) Register(pattern string, handler http.HandlerFunc) {
+	for _, middleware := range appServer.middlewares {
+		handler = middleware(handler)
+	}
 	appServer.routes[pattern] = handler
+}
+
+func (appServer *AppServer) Use(middleware Middleware) {
+	appServer.middlewares = append(appServer.middlewares, middleware)
 }
 
 func NewAppServer() *AppServer {
 	return &AppServer{
-		routes: make(map[string]func(http.ResponseWriter, *http.Request)),
+		routes: make(map[string]http.HandlerFunc),
 	}
 }
 
@@ -46,6 +57,8 @@ func (appServer *AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // application specific
 func IndexHanlder(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("IndexHandler invoked")
+	time.Sleep(2 * time.Second)
 	fmt.Fprintln(w, "Hello World!")
 }
 
@@ -72,17 +85,28 @@ func CustomersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // cross cutting concerns
-func getLogHandler(original func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+func loggerMiddleware(original http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("%v %s %s\n", time.Now(), r.Method, r.URL.Path)
 		original(w, r)
 	}
 }
 
+func profileMiddleware(original http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		original(w, r)
+		elapsed := time.Since(start)
+		fmt.Println("Time Taken :", elapsed)
+	}
+}
+
 func main() {
 	server := NewAppServer()
-	server.Register("/", getLogHandler(IndexHanlder))
-	server.Register("/products", getLogHandler(ProductsHanlder))
-	server.Register("/customers", getLogHandler(CustomersHandler))
+	server.Use(profileMiddleware)
+	server.Use(loggerMiddleware)
+	server.Register("/", IndexHanlder)
+	server.Register("/products", ProductsHanlder)
+	server.Register("/customers", CustomersHandler)
 	http.ListenAndServe(":8080", server)
 }
