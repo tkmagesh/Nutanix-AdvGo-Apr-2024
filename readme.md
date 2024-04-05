@@ -117,3 +117,19 @@
     2. Go plugins (installed in the GOPATH/bin folder)
         go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
         go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
+
+## Testing
+```
+func Test$$$(t *testing.T){
+
+}
+```
+> go test ./... -v
+### Benchmarking
+> go test -bench=. ./... -cpu 1,2,3,4
+
+### Profiling
+> go test -bench=. ./... -cpu 1,2,3,4 -cpuprofile cpu.prof -memprofile mem.prof
+
+> go tool pprof cpu.prof
+
