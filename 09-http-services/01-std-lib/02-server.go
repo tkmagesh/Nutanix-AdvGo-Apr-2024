@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 type Product struct {
@@ -19,6 +20,7 @@ var products []Product = []Product{
 	{102, "Marker", 50, "Stationary"},
 }
 
+// library
 type AppServer struct {
 	routes map[string]func(http.ResponseWriter, *http.Request)
 }
@@ -34,7 +36,6 @@ func NewAppServer() *AppServer {
 }
 
 func (appServer *AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("%s %s\n", r.Method, r.URL.Path)
 	resourcePath := r.URL.Path
 	if handler, exists := appServer.routes[resourcePath]; exists {
 		handler(w, r)
@@ -70,10 +71,18 @@ func CustomersHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "All the customers will be served")
 }
 
+// cross cutting concerns
+func getLogHandler(original func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Printf("%v %s %s\n", time.Now(), r.Method, r.URL.Path)
+		original(w, r)
+	}
+}
+
 func main() {
 	server := NewAppServer()
-	server.Register("/", IndexHanlder)
-	server.Register("/products", ProductsHanlder)
-	server.Register("/customers", CustomersHandler)
+	server.Register("/", getLogHandler(IndexHanlder))
+	server.Register("/products", getLogHandler(ProductsHanlder))
+	server.Register("/customers", getLogHandler(CustomersHandler))
 	http.ListenAndServe(":8080", server)
 }
